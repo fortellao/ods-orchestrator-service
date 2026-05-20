@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: ods-orchestrator-service
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: my-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+orchestration:
+  topics:
+    order-event: topic-order-event
+    order-command: topic-order-command
+    inventory-event: topic-inventory-event
+    inventory-command: topic-inventory-command
+    payment-event: topic-payment-event
+    payment-command: topic-payment-command
