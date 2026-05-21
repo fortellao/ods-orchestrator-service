@@ -14,11 +14,11 @@ public class KafkaTopicsConfiguration {
     @Name("order-command")
     private String orderCommand;
 
-    @Name("inventory-event")
-    private String inventoryEvent;
+    @Name("product-event")
+    private String productEvent;
 
-    @Name("inventory-command")
-    private String inventoryCommand;
+    @Name("product-command")
+    private String productCommand;
 
     @Name("payment-event")
     private String paymentEvent;
@@ -42,20 +42,20 @@ public class KafkaTopicsConfiguration {
         this.orderCommand = orderCommand;
     }
 
-    public String getInventoryEvent() {
-        return inventoryEvent;
+    public String getProductEvent() {
+        return productEvent;
     }
 
-    void setInventoryEvent(String inventoryEvent) {
-        this.inventoryEvent = inventoryEvent;
+    void setProductEvent(String productEvent) {
+        this.productEvent = productEvent;
     }
 
-    public String getInventoryCommand() {
-        return inventoryCommand;
+    public String getProductCommand() {
+        return productCommand;
     }
 
-    void setInventoryCommand(String inventoryCommand) {
-        this.inventoryCommand = inventoryCommand;
+    void setProductCommand(String productCommand) {
+        this.productCommand = productCommand;
     }
 
     public String getPaymentEvent() {

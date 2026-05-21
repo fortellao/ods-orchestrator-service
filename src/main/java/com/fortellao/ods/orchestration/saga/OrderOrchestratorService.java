@@ -1,8 +1,8 @@
 package com.fortellao.ods.orchestration.saga;
 
-import com.fortellao.ods.orchestration.domain.inventory.InventoryCommand;
-import com.fortellao.ods.orchestration.domain.inventory.InventoryEvent;
-import com.fortellao.ods.orchestration.domain.inventory.InventoryOperation;
+import com.fortellao.ods.orchestration.domain.product.ProductCommand;
+import com.fortellao.ods.orchestration.domain.product.ProductEvent;
+import com.fortellao.ods.orchestration.domain.product.ProductOperation;
 import com.fortellao.ods.orchestration.domain.order.Order;
 import com.fortellao.ods.orchestration.domain.order.OrderCommand;
 import com.fortellao.ods.orchestration.domain.order.OrderEvent;
@@ -36,12 +36,12 @@ public class OrderOrchestratorService implements OrchestratorEventHandler {
         order.setStatus(OrderStatus.PENDING);
         orderStore.save(order);
 
-        publisher.sendInventoryCommand(new InventoryCommand(orderId, InventoryOperation.CHECKOUT, request.getItems()));
+        publisher.sendInventoryCommand(new ProductCommand(orderId, ProductOperation.CHECKOUT, request.getItems()));
         log.info("Order {} - inventory checkout requested", orderId);
     }
 
     @Override
-    public void onInventoryEvent(InventoryEvent event) {
+    public void onInventoryEvent(ProductEvent event) {
         if (event.isSuccess()) {
             onInventorySuccess(event);
         } else {
@@ -60,7 +60,7 @@ public class OrderOrchestratorService implements OrchestratorEventHandler {
         }
     }
 
-    private void onInventorySuccess(InventoryEvent event) {
+    private void onInventorySuccess(ProductEvent event) {
         Order order = orderStore.find(event.getOrderId());
         if (order == null) {
             log.warn("Received inventory event for unknown order {}", event.getOrderId());
@@ -83,7 +83,7 @@ public class OrderOrchestratorService implements OrchestratorEventHandler {
     }
 
     private void compensateInventoryAndFail(String orderId) {
-        publisher.sendInventoryCommand(new InventoryCommand(orderId, InventoryOperation.RELEASE));
+        publisher.sendInventoryCommand(new ProductCommand(orderId, ProductOperation.RELEASE));
         log.info("Order {} - inventory release requested", orderId);
         failOrder(orderId);
     }

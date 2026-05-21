@@ -66,7 +66,7 @@ order-service          orchestrator           inventory-service      payment-ser
 
 ### Partial reservation compensation
 
-`InventoryEvent` already carries `reservedItems` (a list of `ReservedItem` with `productId`, `quantity`, and `unitPrice`) for cases where the inventory service can only partially fulfil an order. A future compensation flow will use this to handle partial reservations — releasing only the items that were successfully reserved rather than sending a blanket `RELEASE` command.
+`ProductEvent` already carries `reservedItems` (a list of `ReservedItem` with `productId`, `quantity`, and `unitPrice`) for cases where the inventory service can only partially fulfil an order. A future compensation flow will use this to handle partial reservations — releasing only the items that were successfully reserved rather than sending a blanket `RELEASE` command.
 
 ## Local Testing
 

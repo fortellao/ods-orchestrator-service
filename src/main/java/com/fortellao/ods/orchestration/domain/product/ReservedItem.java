@@ -1,4 +1,4 @@
-package com.fortellao.ods.orchestration.domain.inventory;
+package com.fortellao.ods.orchestration.domain.product;
 
 import java.math.BigDecimal;
 

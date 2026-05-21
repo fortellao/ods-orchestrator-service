@@ -1,10 +1,10 @@
 package com.fortellao.ods.orchestration.messaging.outbound;
 
-import com.fortellao.ods.orchestration.config.KafkaTopicsConfiguration;
-import com.fortellao.ods.orchestration.domain.inventory.InventoryCommand;
+import com.fortellao.ods.orchestration.domain.product.ProductCommand;
 import com.fortellao.ods.orchestration.domain.order.OrderCommand;
 import com.fortellao.ods.orchestration.domain.payment.PaymentCommand;
 import com.fortellao.ods.orchestration.saga.OrchestratorCommandPublisher;
+import org.springframework.beans.factory.annotation.Value;
 import tools.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,30 +17,38 @@ public class OrchestratorKafkaPublisher implements OrchestratorCommandPublisher 
     private static final Logger log = LoggerFactory.getLogger(OrchestratorKafkaPublisher.class);
 
     private final KafkaTemplate<String, String> kafkaTemplate;
-    private final KafkaTopicsConfiguration topics;
     private final ObjectMapper objectMapper;
+    private final String productCommandTopic;
+    private final String paymentCommandTopic;
+    private final String orderCommandTopic;
 
-    public OrchestratorKafkaPublisher(KafkaTemplate<String, String> kafkaTemplate,
-                                      KafkaTopicsConfiguration topics,
-                                      ObjectMapper objectMapper) {
+    public OrchestratorKafkaPublisher(
+            KafkaTemplate<String, String> kafkaTemplate,
+            ObjectMapper objectMapper,
+            @Value("${orchestration.topics.order-command}") String orderCommandTopic,
+            @Value("${orchestration.topics.product-command}") String productCommandTopic,
+            @Value("${orchestration.topics.payment-command}") String paymentCommandTopic
+    ) {
         this.kafkaTemplate = kafkaTemplate;
-        this.topics = topics;
         this.objectMapper = objectMapper;
+        this.productCommandTopic = productCommandTopic;
+        this.paymentCommandTopic = paymentCommandTopic;
+        this.orderCommandTopic = orderCommandTopic;
     }
 
     @Override
-    public void sendInventoryCommand(InventoryCommand command) {
-        send(topics.getInventoryCommand(), command.getOrderId(), command);
+    public void sendInventoryCommand(ProductCommand command) {
+        send(this.productCommandTopic, command.getOrderId(), command);
     }
 
     @Override
     public void sendPaymentCommand(PaymentCommand command) {
-        send(topics.getPaymentCommand(), command.getOrderId(), command);
+        send(this.paymentCommandTopic, command.getOrderId(), command);
     }
 
     @Override
     public void sendOrderCommand(OrderCommand command) {
-        send(topics.getOrderCommand(), command.getOrderId(), command);
+        send(this.orderCommandTopic, command.getOrderId(), command);
     }
 
     private void send(String topic, String key, Object payload) {
