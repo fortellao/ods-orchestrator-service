@@ -1,8 +1,8 @@
 package com.fortellao.ods.orchestration.saga;
 
-import com.fortellao.ods.orchestration.domain.inventory.InventoryCommand;
-import com.fortellao.ods.orchestration.domain.inventory.InventoryEvent;
-import com.fortellao.ods.orchestration.domain.inventory.InventoryOperation;
+import com.fortellao.ods.orchestration.domain.product.ProductCommand;
+import com.fortellao.ods.orchestration.domain.product.ProductEvent;
+import com.fortellao.ods.orchestration.domain.product.ProductOperation;
 import com.fortellao.ods.orchestration.domain.order.Item;
 import com.fortellao.ods.orchestration.domain.order.OrderCommand;
 import com.fortellao.ods.orchestration.domain.order.OrderEvent;
@@ -38,7 +38,7 @@ class OrderOrchestratorServiceTest {
     private OrchestratorCommandPublisher publisher;
 
     @Captor
-    private ArgumentCaptor<InventoryCommand> inventoryCommandCaptor;
+    private ArgumentCaptor<ProductCommand> inventoryCommandCaptor;
 
     @Captor
     private ArgumentCaptor<PaymentCommand> paymentCommandCaptor;
@@ -68,10 +68,10 @@ class OrderOrchestratorServiceTest {
         service.onOrderReceived(event);
 
         verify(publisher).sendInventoryCommand(inventoryCommandCaptor.capture());
-        InventoryCommand cmd = inventoryCommandCaptor.getValue();
+        ProductCommand cmd = inventoryCommandCaptor.getValue();
 
         assertNotNull(cmd.getOrderId());
-        assertEquals(InventoryOperation.CHECKOUT, cmd.getOperation());
+        assertEquals(ProductOperation.CHECKOUT, cmd.getOperation());
         assertEquals(event.getItems(), cmd.getItems());
 
         Order stored = orderStore.find(cmd.getOrderId());
@@ -84,7 +84,7 @@ class OrderOrchestratorServiceTest {
     void onInventoryEvent_onSuccess_requestsPayment() {
         Order order = savedOrder();
 
-        InventoryEvent event = new InventoryEvent();
+        ProductEvent event = new ProductEvent();
         event.setOrderId(order.getOrderId());
         event.setSuccess(true);
         event.setTotalPrice(BigDecimal.valueOf(74.48));
@@ -104,7 +104,7 @@ class OrderOrchestratorServiceTest {
     void onInventoryEvent_onFailure_sendsFailedStatusAndRemovesOrderFromStore() {
         Order order = savedOrder();
 
-        InventoryEvent event = new InventoryEvent();
+        ProductEvent event = new ProductEvent();
         event.setOrderId(order.getOrderId());
         event.setSuccess(false);
 
@@ -147,7 +147,7 @@ class OrderOrchestratorServiceTest {
         inOrder.verify(publisher).sendInventoryCommand(inventoryCommandCaptor.capture());
         inOrder.verify(publisher).sendOrderCommand(orderCommandCaptor.capture());
 
-        assertEquals(InventoryOperation.RELEASE, inventoryCommandCaptor.getValue().getOperation());
+        assertEquals(ProductOperation.RELEASE, inventoryCommandCaptor.getValue().getOperation());
         assertEquals(order.getOrderId(), inventoryCommandCaptor.getValue().getOrderId());
         assertEquals(OrderStatus.FAILED, orderCommandCaptor.getValue().getStatus());
         assertNull(orderStore.find(order.getOrderId()));

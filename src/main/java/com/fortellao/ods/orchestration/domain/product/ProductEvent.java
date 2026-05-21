@@ -1,15 +1,15 @@
-package com.fortellao.ods.orchestration.domain.inventory;
+package com.fortellao.ods.orchestration.domain.product;
 
 import java.math.BigDecimal;
 import java.util.List;
 
-public class InventoryEvent {
+public class ProductEvent {
     private String orderId;
     private boolean success;
     private List<ReservedItem> reservedItems;
     private BigDecimal totalPrice;
 
-    public InventoryEvent() {}
+    public ProductEvent() {}
 
     public String getOrderId() { return orderId; }
     public void setOrderId(String orderId) { this.orderId = orderId; }

@@ -1,23 +1,23 @@
-package com.fortellao.ods.orchestration.domain.inventory;
+package com.fortellao.ods.orchestration.domain.product;
 
 import com.fortellao.ods.orchestration.domain.order.Item;
 
 import java.util.List;
 
-public class InventoryCommand {
+public class ProductCommand {
     private String orderId;
-    private InventoryOperation operation;
+    private ProductOperation operation;
     private List<Item> items;
 
-    public InventoryCommand() {}
+    public ProductCommand() {}
 
-    public InventoryCommand(String orderId, InventoryOperation operation, List<Item> items) {
+    public ProductCommand(String orderId, ProductOperation operation, List<Item> items) {
         this.orderId = orderId;
         this.operation = operation;
         this.items = items;
     }
 
-    public InventoryCommand(String orderId, InventoryOperation operation) {
+    public ProductCommand(String orderId, ProductOperation operation) {
         this.orderId = orderId;
         this.operation = operation;
     }
@@ -25,8 +25,8 @@ public class InventoryCommand {
     public String getOrderId() { return orderId; }
     public void setOrderId(String orderId) { this.orderId = orderId; }
 
-    public InventoryOperation getOperation() { return operation; }
-    public void setOperation(InventoryOperation operation) { this.operation = operation; }
+    public ProductOperation getOperation() { return operation; }
+    public void setOperation(ProductOperation operation) { this.operation = operation; }
 
     public List<Item> getItems() { return items; }
     public void setItems(List<Item> items) { this.items = items; }

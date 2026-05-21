@@ -16,8 +16,8 @@ public class ServiceStatusService {
         return new ServiceStatus(
                 kafkaTopicsConfiguration.getOrderEvent(),
                 kafkaTopicsConfiguration.getOrderCommand(),
-                kafkaTopicsConfiguration.getInventoryEvent(),
-                kafkaTopicsConfiguration.getInventoryCommand(),
+                kafkaTopicsConfiguration.getProductEvent(),
+                kafkaTopicsConfiguration.getProductCommand(),
                 kafkaTopicsConfiguration.getPaymentEvent(),
                 kafkaTopicsConfiguration.getPaymentCommand()
         );

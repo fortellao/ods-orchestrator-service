@@ -14,7 +14,7 @@ Requires a running Kafka broker. Topic names are configured in `application.yml`
 orchestration/
 ├── saga/          Core saga logic + ports (OrchestratorEventHandler, OrchestratorCommandPublisher, SagaOrderStore)
 ├── domain/
-│   ├── inventory/ Inventory domain types (InventoryCommand, InventoryEvent, InventoryOperation, ReservedItem)
+│   ├── product/   Product domain types (ProductCommand, ProductEvent, ProductOperation, ReservedItem)
 │   ├── order/     Order domain types (Order, OrderCommand, OrderEvent, OrderStatus, Item)
 │   └── payment/   Payment domain types (PaymentCommand, PaymentEvent)
 ├── messaging/
@@ -40,13 +40,13 @@ order-service          orchestrator           inventory-service      payment-ser
      |   (status: FAILED)   |                        |                      |
 ```
 
-`InventoryCommand.operation` is either `CHECKOUT` (with items) or `RELEASE` (orderId only — inventory-service resolves the reservation by orderId).
+`ProductCommand.operation` is either `CHECKOUT` (with items) or `RELEASE` (orderId only — inventory-service resolves the reservation by orderId).
 
 ## Architectural Decisions
 
 - **Hexagonal / ports-and-adapters**: the saga core is decoupled from Kafka and storage. Inbound port: `OrchestratorEventHandler`. Outbound ports: `OrchestratorCommandPublisher`, `SagaOrderStore`.
 - **`SagaOrderStore` is intentionally extracted**: the in-memory `ConcurrentHashMap` implementation is a placeholder. The migration path is Redis or MongoDB — implement the interface in `store/` and swap the Spring bean.
-- **Inventory service owns `totalPrice`**: the orchestrator does not calculate order totals. `InventoryEvent` carries `totalPrice`, which is forwarded as-is to the payment command.
+- **Inventory service owns `totalPrice`**: the orchestrator does not calculate order totals. `ProductEvent` carries `totalPrice`, which is forwarded as-is to the payment command.
 - **Constructor injection only**: no `@Autowired` on fields or constructors (redundant since Spring 4.3+).
 - **Compensation scope**: only payment failure triggers inventory compensation. Inventory failure needs no compensation — no reservation was made. Never call `sendInventoryRelease` from the inventory failure path.
 
@@ -62,4 +62,4 @@ order-service          orchestrator           inventory-service      payment-ser
 - Do not add business logic to `OrchestratorKafkaListener` — it is transport only (deserialize + delegate).
 - Do not add Kafka, Jackson, or Spring imports to `OrderOrchestratorService`.
 - Do not calculate derived values (e.g. totals) in the orchestrator — delegate to the owning service.
-- Do not remove `ReservedItem` or `InventoryEvent.reservedItems` — they are intentionally kept as a placeholder for a planned partial reservation compensation flow. They will have no test coverage until that flow is implemented.
+- Do not remove `ReservedItem` or `ProductEvent.reservedItems` — they are intentionally kept as a placeholder for a planned partial reservation compensation flow. They will have no test coverage until that flow is implemented.
