@@ -17,3 +17,19 @@ orchestration:
     payment-event: topic-payment-event
     payment-command: topic-payment-command
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+      # Groups are defined manually instead of using management.health.probes.enabled=true
+      # because the probes.enabled auto-created groups ignore custom HealthIndicator beans (e.g. KafkaHealthIndicator)
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,kafka
+

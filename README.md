@@ -68,6 +68,21 @@ order-service          orchestrator           inventory-service      payment-ser
 
 `ProductEvent` already carries `reservedItems` (a list of `ReservedItem` with `productId`, `quantity`, and `unitPrice`) for cases where the inventory service can only partially fulfil an order. A future compensation flow will use this to handle partial reservations — releasing only the items that were successfully reserved rather than sending a blanket `RELEASE` command.
 
+## Health & Observability
+
+Spring Boot Actuator is enabled with full endpoint exposure. All endpoints are available under `/actuator`.
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /actuator/health/liveness` | Kubernetes liveness probe — reflects Spring application lifecycle state |
+| `GET /actuator/health/readiness` | Kubernetes readiness probe — includes Kafka connectivity check |
+| `GET /actuator/health` | Full health detail across all contributors |
+| `GET /actuator/info` | Application metadata |
+| `GET /actuator/metrics` | JVM and application metrics |
+| `GET /actuator/env` | Resolved configuration properties |
+
+The readiness probe returns `DOWN` if the Kafka broker is unreachable, causing Kubernetes to stop routing traffic to the pod until connectivity is restored.
+
 ## Local Testing
 
 ### Prerequisites
