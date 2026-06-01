@@ -4,6 +4,7 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.DescribeClusterResult;
 import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.kafka.core.KafkaAdmin;
@@ -18,16 +19,21 @@ import java.util.concurrent.TimeUnit;
 public class KafkaHealthIndicator implements HealthIndicator, DisposableBean {
 
     private final AdminClient adminClient;
+    private final int timeoutMs;
 
-    public KafkaHealthIndicator(KafkaAdmin kafkaAdmin) {
+    public KafkaHealthIndicator(
+            KafkaAdmin kafkaAdmin,
+            @Value("${management.health.kafka.timeout-ms:1000}") int timeoutMs) {
+        this.timeoutMs = timeoutMs;
         Map<String, Object> config = new HashMap<>(kafkaAdmin.getConfigurationProperties());
         config.put(AdminClientConfig.CLIENT_ID_CONFIG, "health-indicator");
-        // Fail the in-flight describeCluster() request quickly so the health probe doesn't stall
-        config.put(AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, 2500);
+        // Leave 20% headroom so the Kafka request fails before Future.get() cuts the thread
+        config.put(AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, timeoutMs * 4 / 5);
         // Pace reconnect retries; honoured because metadata.recovery.strategy=none
         // preserves the backoff counter (the default "rebootstrap" strategy resets it on every cycle)
-        config.put(AdminClientConfig.RECONNECT_BACKOFF_MS_CONFIG, 1000);
-        config.put(AdminClientConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, 30_000);
+        config.put(AdminClientConfig.RECONNECT_BACKOFF_MS_CONFIG, 100);
+        // Cap max backoff so a single backoff cycle always fits within the probe timeout budget
+        config.put(AdminClientConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, timeoutMs / 2);
         // Prevents rebootstrap from resetting the backoff counter, which would cause rapid reconnect storms
         config.put("metadata.recovery.strategy", "none");
         this.adminClient = AdminClient.create(config);
@@ -37,8 +43,8 @@ public class KafkaHealthIndicator implements HealthIndicator, DisposableBean {
     public Health health() {
         try {
             DescribeClusterResult cluster = adminClient.describeCluster();
-            String clusterId = cluster.clusterId().get(3, TimeUnit.SECONDS);
-            int nodeCount = cluster.nodes().get(3, TimeUnit.SECONDS).size();
+            String clusterId = cluster.clusterId().get(timeoutMs, TimeUnit.MILLISECONDS);
+            int nodeCount = cluster.nodes().get(timeoutMs, TimeUnit.MILLISECONDS).size();
             return Health.up()
                     .withDetail("clusterId", clusterId)
                     .withDetail("nodeCount", nodeCount)
