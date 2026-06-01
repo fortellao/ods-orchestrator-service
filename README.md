@@ -83,6 +83,8 @@ Spring Boot Actuator is enabled with full endpoint exposure. All endpoints are a
 
 The readiness probe returns `DOWN` if the Kafka broker is unreachable, causing Kubernetes to stop routing traffic to the pod until connectivity is restored.
 
+The Kafka health check timeout is configurable via `management.health.kafka.timeout-ms` (default `1000` ms). Set this below the Kubernetes probe `timeoutSeconds` to avoid false negatives.
+
 ## Local Testing
 
 ### Prerequisites

@@ -32,4 +32,8 @@ management:
           include: livenessState
         readiness:
           include: readinessState,kafka
+  health:
+    kafka:
+      # Must be lower than Kubernetes probe timeoutSeconds to avoid false negatives
+      timeout-ms: 1000
 
