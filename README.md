@@ -87,12 +87,16 @@ The Kafka health check timeout is configurable via `management.health.kafka.time
 
 ## Local Testing
 
-### Prerequisites
+There are three ways to run locally depending on your environment.
 
-- Docker (for Kafka)
+### Option A — Kafka only (fast iteration)
+
+#### Prerequisites
+
+- Docker
 - `kafka-console-producer` / `kafka-console-consumer` on your `PATH` (included in the [Confluent Platform CLI](https://docs.confluent.io/platform/current/installation/installing_cp/zip-tar.html) or any Kafka distribution)
 
-### 1. Start Kafka
+#### 1. Start Kafka
 
 ```bash
 docker compose -f docker-compose-kafka.yaml up -d
@@ -100,19 +104,80 @@ docker compose -f docker-compose-kafka.yaml up -d
 
 Broker is available at `localhost:9092`.
 
-### 2. Start the service
+#### 2. Start the service
 
 ```bash
 mvn spring-boot:run
 ```
 
-### 3. Monitor all topics (separate terminal)
+### Option B — Full stack with OpenTelemetry
+
+Runs the service as a Docker container with the OTel Java agent attached, alongside an OTel Collector and Jaeger for trace visualisation.
 
 ```bash
-bash scripts/test/monitor-topics.sh
+docker compose -f docker-compose-otel.yaml up --build
+```
+
+| URL | Purpose |
+| --- | --- |
+| `http://localhost:8080` | Service |
+| `http://localhost:16686` | Jaeger UI — view traces here |
+
+The first build downloads Maven dependencies inside the container and is slow. Subsequent builds are fast unless `pom.xml` changes.
+
+Teardown:
+
+```bash
+docker compose -f docker-compose-otel.yaml down
+```
+
+### Option C — Remote Kafka (DEV environment)
+
+Points the service at an existing Kafka broker (e.g. a shared DEV cluster) without running one locally.
+
+Create `src/main/resources/application-local.yml` (gitignored — never committed) with the properties you want to override:
+
+```yaml
+spring:
+  kafka:
+    bootstrap-servers: <broker-host>:<port>
+```
+
+Then activate the `local` profile in your IDE run configuration (`-Dspring.profiles.active=local`) or from the terminal:
+
+```bash
+mvn spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+Add any other environment-specific overrides to the same file — it will never be picked up by git.
+
+---
+
+### Monitor all topics (separate terminal)
+
+```bash
+bash scripts/monitor-topics.sh
 ```
 
 Every message printed by the scripts below will appear here, tagged with its topic name.
+
+By default only new messages are shown. Pass `--from-beginning` (or `-B`) to replay from the earliest offset:
+
+```bash
+bash scripts/monitor-topics.sh --from-beginning
+```
+
+Pass `--headers` (or `-H`) to also print Kafka message headers — useful for inspecting OTel trace context (`traceparent`, `tracestate`) propagated by the agent:
+
+```bash
+bash scripts/monitor-topics.sh --headers
+```
+
+Flags can be combined:
+
+```bash
+bash scripts/monitor-topics.sh --from-beginning --headers
+```
 
 ### 4. Run through the happy path
 
