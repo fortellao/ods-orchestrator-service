@@ -38,7 +38,7 @@ class OrderOrchestratorServiceTest {
     private OrchestratorCommandPublisher publisher;
 
     @Captor
-    private ArgumentCaptor<ProductCommand> inventoryCommandCaptor;
+    private ArgumentCaptor<ProductCommand> productCommandCaptor;
 
     @Captor
     private ArgumentCaptor<PaymentCommand> paymentCommandCaptor;
@@ -56,7 +56,7 @@ class OrderOrchestratorServiceTest {
     }
 
     @Test
-    void onOrderReceived_savesPendingOrderAndRequestsInventoryCheckout() {
+    void onOrderReceived_savesPendingOrderAndRequestsProductCheckout() {
         OrderEvent event = new OrderEvent(
                 "cust-8821",
                 "pay-4493",
@@ -65,8 +65,8 @@ class OrderOrchestratorServiceTest {
 
         service.onOrderReceived(event);
 
-        verify(publisher).sendInventoryCommand(inventoryCommandCaptor.capture());
-        ProductCommand cmd = inventoryCommandCaptor.getValue();
+        verify(publisher).sendProductCommand(productCommandCaptor.capture());
+        ProductCommand cmd = productCommandCaptor.getValue();
 
         assertNotNull(cmd.orderId());
         assertEquals(ProductOperation.CHECKOUT, cmd.operation());
@@ -79,12 +79,12 @@ class OrderOrchestratorServiceTest {
     }
 
     @Test
-    void onInventoryEvent_onSuccess_requestsPayment() {
+    void onProductEvent_onSuccess_requestsPayment() {
         Order order = savedOrder();
 
         ProductEvent event = new ProductEvent(order.orderId(), true, null, BigDecimal.valueOf(74.48));
 
-        service.onInventoryEvent(event);
+        service.onProductEvent(event);
 
         verify(publisher).sendPaymentCommand(paymentCommandCaptor.capture());
         PaymentCommand cmd = paymentCommandCaptor.getValue();
@@ -96,17 +96,17 @@ class OrderOrchestratorServiceTest {
     }
 
     @Test
-    void onInventoryEvent_onFailure_sendsFailedStatusAndRemovesOrderFromStore() {
+    void onProductEvent_onFailure_sendsFailedStatusAndRemovesOrderFromStore() {
         Order order = savedOrder();
 
         ProductEvent event = new ProductEvent(order.orderId(), false, null, null);
 
-        service.onInventoryEvent(event);
+        service.onProductEvent(event);
 
         verify(publisher).sendOrderCommand(orderCommandCaptor.capture());
         assertEquals(order.orderId(), orderCommandCaptor.getValue().orderId());
         assertEquals(OrderStatus.FAILED, orderCommandCaptor.getValue().status());
-        verify(publisher, never()).sendInventoryCommand(any());
+        verify(publisher, never()).sendProductCommand(any());
         assertNull(orderStore.find(order.orderId()));
     }
 
@@ -125,7 +125,7 @@ class OrderOrchestratorServiceTest {
     }
 
     @Test
-    void onPaymentEvent_onFailure_releasesInventoryThenSendsFailedStatus() {
+    void onPaymentEvent_onFailure_releasesProductReservationThenSendsFailedStatus() {
         Order order = savedOrder();
 
         PaymentEvent event = new PaymentEvent(order.orderId(), false);
@@ -133,11 +133,11 @@ class OrderOrchestratorServiceTest {
         service.onPaymentEvent(event);
 
         InOrder inOrder = inOrder(publisher);
-        inOrder.verify(publisher).sendInventoryCommand(inventoryCommandCaptor.capture());
+        inOrder.verify(publisher).sendProductCommand(productCommandCaptor.capture());
         inOrder.verify(publisher).sendOrderCommand(orderCommandCaptor.capture());
 
-        assertEquals(ProductOperation.RELEASE, inventoryCommandCaptor.getValue().operation());
-        assertEquals(order.orderId(), inventoryCommandCaptor.getValue().orderId());
+        assertEquals(ProductOperation.RELEASE, productCommandCaptor.getValue().operation());
+        assertEquals(order.orderId(), productCommandCaptor.getValue().orderId());
         assertEquals(OrderStatus.FAILED, orderCommandCaptor.getValue().status());
         assertNull(orderStore.find(order.orderId()));
     }

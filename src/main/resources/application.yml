@@ -12,8 +12,8 @@ orchestration:
   topics:
     order-event: topic-order-event
     order-command: topic-order-command
-    product-event: topic-inventory-event
-    product-command: topic-inventory-command
+    product-event: topic-product-event
+    product-command: topic-product-command
     payment-event: topic-payment-event
     payment-command: topic-payment-command
 

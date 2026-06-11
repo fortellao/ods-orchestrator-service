@@ -5,7 +5,7 @@ import com.fortellao.ods.orchestration.domain.order.OrderCommand;
 import com.fortellao.ods.orchestration.domain.payment.PaymentCommand;
 
 public interface OrchestratorCommandPublisher {
-    void sendInventoryCommand(ProductCommand command);
+    void sendProductCommand(ProductCommand command);
     void sendPaymentCommand(PaymentCommand command);
     void sendOrderCommand(OrderCommand command);
 }

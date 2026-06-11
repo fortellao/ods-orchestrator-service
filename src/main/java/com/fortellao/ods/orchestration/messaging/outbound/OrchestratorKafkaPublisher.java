@@ -37,7 +37,7 @@ public class OrchestratorKafkaPublisher implements OrchestratorCommandPublisher 
     }
 
     @Override
-    public void sendInventoryCommand(ProductCommand command) {
+    public void sendProductCommand(ProductCommand command) {
         send(this.productCommandTopic, command.orderId(), command);
     }
 
