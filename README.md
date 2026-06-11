@@ -1,6 +1,6 @@
 # Order Orchestration Service
 
-This Spring Boot microservice is the central coordinator in a distributed order processing system. It orchestrates the saga/workflow across inventory, payment, and other downstream services via Kafka.
+This Spring Boot microservice is the central coordinator in a distributed order processing system. It orchestrates the saga/workflow across product, payment, and other downstream services via Kafka.
 
 ## Architecture
 
@@ -10,20 +10,20 @@ The service communicates exclusively through Kafka topics, configured in `applic
 |---|---|---|
 | `order-event` | inbound | Incoming order requests |
 | `order-command` | outbound | Commands to order domain |
-| `inventory-command` | outbound | Commands sent to inventory-api |
-| `inventory-event` | inbound | Responses from inventory-api |
+| `product-command` | outbound | Commands sent to product-service |
+| `product-event` | inbound | Responses from product-service |
 | `payment-command` | outbound | Commands sent to payment service |
 | `payment-event` | inbound | Responses from payment service |
 
 ## Happy Path Order Flow
 
 ```
-order-service          orchestrator           inventory-service      payment-service
+order-service          orchestrator           product-service      payment-service
      |                      |                        |                      |
      |-- order-event ------>|                        |                      |
-     |                      |-- inventory-command -->|                      |
+     |                      |-- product-command ---->|                      |
      |                      |   (checkout request)   |                      |
-     |                      |<-- inventory-event ----|                      |
+     |                      |<-- product-event ------|                      |
      |                      |   (reservation OK +    |                      |
      |                      |    total price)        |                      |
      |                      |                        |                      |
@@ -39,34 +39,34 @@ order-service          orchestrator           inventory-service      payment-ser
 ### Steps
 
 1. **Receive order** — `order-event` topic triggers `onOrderReceived(OrderEvent)`.
-2. **Inventory checkout** — publish the `items` list to `inventory-command` requesting availability check and reservation.
-3. **Await inventory response** — `inventory-event` returns the reservation result. On success, proceed.
-4. **Payment validation** — forward the total price provided by inventory-service to `payment-command`.
+2. **Product checkout** — publish the `items` list to `product-command` requesting availability check and reservation.
+3. **Await product event** — `product-event` returns the reservation result. On success, proceed.
+4. **Payment validation** — forward the total price provided by product-service to `payment-command`.
 5. **Await payment response** — `payment-event` returns payment confirmation. On success, proceed.
 6. **Confirm order** — publish to `order-command` with the order in `CONFIRMED` status.
 
 ## Payment Failure — Compensation Flow
 
-When payment is declined the orchestrator releases the inventory reservation before marking the order as failed.
+When payment is declined the orchestrator releases the product reservation before marking the order as failed.
 
 ```
-order-service          orchestrator           inventory-service      payment-service
+order-service          orchestrator           product-service      payment-service
      |                      |                        |                      |
      |                      |<-- payment-event -----------------------------|
      |                      |                        |   (success: false)   |
-     |                      |-- inventory-command -->|                      |
+     |                      |-- product-command ---->|                      |
      |                      |   (operation: RELEASE) |                      |
      |<-- order-command ----|                        |                      |
      |   (status: FAILED)   |                        |                      |
 ```
 
-> Inventory failure does not trigger compensation — if the inventory checkout fails no reservation was made.
+> Product checkout failure does not trigger compensation — if the product checkout fails no reservation was made.
 
 ## Planned
 
 ### Partial reservation compensation
 
-`ProductEvent` already carries `reservedItems` (a list of `ReservedItem` with `productId`, `quantity`, and `unitPrice`) for cases where the inventory service can only partially fulfil an order. A future compensation flow will use this to handle partial reservations — releasing only the items that were successfully reserved rather than sending a blanket `RELEASE` command.
+`ProductEvent` already carries `reservedItems` (a list of `ReservedItem` with `productId`, `quantity`, and `unitPrice`) for cases where the product service can only partially fulfil an order. A future compensation flow will use this to handle partial reservations — releasing only the items that were successfully reserved rather than sending a blanket `RELEASE` command.
 
 ## Health & Observability
 
@@ -187,12 +187,12 @@ bash scripts/monitor-topics.sh --from-beginning --headers
 bash scripts/test/1-order-event.sh
 ```
 
-The orchestrator receives it, generates an `orderId`, and publishes an `inventory-command`. Copy the `orderId` from the monitor output on `[topic-inventory-command]`.
+The orchestrator receives it, generates an `orderId`, and publishes a `product-command`. Copy the `orderId` from the monitor output on `[topic-product-command]`.
 
-**Step 2 — Send an inventory success event** (simulates inventory-service)
+**Step 2 — Send a product success event** (simulates product-service)
 
 ```bash
-bash scripts/test/2-inventory-event.sh <orderId>
+bash scripts/test/2-product-event.sh <orderId>
 ```
 
 The orchestrator receives the reservation confirmation and publishes a `payment-command`.
@@ -207,19 +207,19 @@ The orchestrator publishes an `order-command` with status `CONFIRMED` on `[topic
 
 ### Failure scenarios
 
-**Inventory failure** — order marked `FAILED`, no payment attempted, no compensation needed:
+**Product checkout failure** — order marked `FAILED`, no payment attempted, no compensation needed:
 
 ```bash
-bash scripts/test/2-inventory-event.sh <orderId> --fail
+bash scripts/test/2-product-event.sh <orderId> --fail
 ```
 
-**Payment failure** — orchestrator releases the inventory reservation then marks the order `FAILED`:
+**Payment failure** — orchestrator releases the product reservation then marks the order `FAILED`:
 
 ```bash
 bash scripts/test/3-payment-event.sh <orderId> --fail
 ```
 
-You should see an `inventory-command` with `"operation":"RELEASE"` on `[topic-inventory-command]`, followed by an `order-command` with `status: FAILED` on `[topic-order-command]`.
+You should see a `product-command` with `"operation":"RELEASE"` on `[topic-product-command]`, followed by an `order-command` with `status: FAILED` on `[topic-order-command]`.
 
 ### Teardown
 

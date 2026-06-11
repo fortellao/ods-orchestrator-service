@@ -6,6 +6,6 @@ import com.fortellao.ods.orchestration.domain.payment.PaymentEvent;
 
 public interface OrchestratorEventHandler {
     void onOrderReceived(OrderEvent event);
-    void onInventoryEvent(ProductEvent event);
+    void onProductEvent(ProductEvent event);
     void onPaymentEvent(PaymentEvent event);
 }

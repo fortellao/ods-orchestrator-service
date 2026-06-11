@@ -34,16 +34,16 @@ public class OrderOrchestratorService implements OrchestratorEventHandler {
         Order order = new Order(orderId, OrderStatus.PENDING, request);
         orderStore.save(order);
 
-        publisher.sendInventoryCommand(new ProductCommand(orderId, ProductOperation.CHECKOUT, request.items()));
-        log.info("Order {} - inventory checkout requested", orderId);
+        publisher.sendProductCommand(new ProductCommand(orderId, ProductOperation.CHECKOUT, request.items()));
+        log.info("Order {} - product checkout requested", orderId);
     }
 
     @Override
-    public void onInventoryEvent(ProductEvent event) {
+    public void onProductEvent(ProductEvent event) {
         if (event.success()) {
-            onInventorySuccess(event);
+            onProductSuccess(event);
         } else {
-            log.warn("Order {} - inventory checkout failed", event.orderId());
+            log.warn("Order {} - product checkout failed", event.orderId());
             failOrder(event.orderId());
         }
     }
@@ -54,14 +54,14 @@ public class OrderOrchestratorService implements OrchestratorEventHandler {
             onPaymentSuccess(event);
         } else {
             log.warn("Order {} - payment validation failed", event.orderId());
-            compensateInventoryAndFail(event.orderId());
+            compensateProductAndFail(event.orderId());
         }
     }
 
-    private void onInventorySuccess(ProductEvent event) {
+    private void onProductSuccess(ProductEvent event) {
         Order order = orderStore.find(event.orderId());
         if (order == null) {
-            log.warn("Received inventory event for unknown order {}", event.orderId());
+            log.warn("Received product event for unknown order {}", event.orderId());
             return;
         }
 
@@ -80,9 +80,9 @@ public class OrderOrchestratorService implements OrchestratorEventHandler {
         log.info("Order {} - confirmed", event.orderId());
     }
 
-    private void compensateInventoryAndFail(String orderId) {
-        publisher.sendInventoryCommand(new ProductCommand(orderId, ProductOperation.RELEASE));
-        log.info("Order {} - inventory release requested", orderId);
+    private void compensateProductAndFail(String orderId) {
+        publisher.sendProductCommand(new ProductCommand(orderId, ProductOperation.RELEASE));
+        log.info("Order {} - product release requested", orderId);
         failOrder(orderId);
     }
 

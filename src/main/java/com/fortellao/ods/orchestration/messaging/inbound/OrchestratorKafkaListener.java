@@ -36,9 +36,9 @@ public class OrchestratorKafkaListener {
     @KafkaListener(topics = "${orchestration.topics.product-event}")
     public void onProductEvent(String value) {
         try {
-            eventHandler.onInventoryEvent(objectMapper.readValue(value, ProductEvent.class));
+            eventHandler.onProductEvent(objectMapper.readValue(value, ProductEvent.class));
         } catch (Exception e) {
-            log.error("Failed to process inventory event", e);
+            log.error("Failed to process product event", e);
         }
     }
 

@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Usage: ./2-inventory-event.sh <orderId> [--fail]
-#   orderId — from topic-inventory-command after running 1-order-event.sh
+# Usage: ./2-product-event.sh <orderId> [--fail]
+#   orderId — from topic-product-command after running 1-order-event.sh
 #   --fail  — send a failure response instead of success
 
 BOOTSTRAP_SERVER="localhost:9092"
-TOPIC="topic-inventory-event"
+TOPIC="topic-product-event"
 
 ORDER_ID="$1"
 FAIL=false

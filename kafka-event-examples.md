@@ -33,9 +33,9 @@ Published by the order-service to kick off a new order.
 
 ---
 
-## `inventory-command` — InventoryCommand (outbound)
+## `product-command` — ProductCommand (outbound)
 
-Published by the orchestrator to request a checkout or release from inventory-service.
+Published by the orchestrator to request a checkout or release from product-service.
 
 ### Checkout
 
@@ -64,7 +64,7 @@ Published by the orchestrator to request a checkout or release from inventory-se
 
 ### Release (compensation)
 
-Sent when payment fails. No items needed — inventory-service resolves the reservation by orderId.
+Sent when payment fails. No items needed — product-service resolves the reservation by orderId.
 
 **Pretty**
 ```json
@@ -81,9 +81,9 @@ Sent when payment fails. No items needed — inventory-service resolves the rese
 
 ---
 
-## `inventory-event` — InventoryEvent (inbound)
+## `product-event` — ProductEvent (inbound)
 
-Response from inventory-service after a checkout attempt. Includes the pre-calculated total price on success.
+Response from product-service after a checkout attempt. Includes the pre-calculated total price on success.
 
 ### Success
 

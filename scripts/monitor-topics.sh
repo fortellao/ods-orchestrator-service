@@ -14,8 +14,8 @@ done
 TOPICS=(
   topic-order-event
   topic-order-command
-  topic-inventory-event
-  topic-inventory-command
+  topic-product-event
+  topic-product-command
   topic-payment-event
   topic-payment-command
 )

@@ -32,14 +32,14 @@ The current `ConcurrentHashMap` implementation is a placeholder — all in-fligh
 
 **Test unknown-order edge cases**
 
-`onInventorySuccess` and `onPaymentSuccess` both guard against events arriving for unknown orders (log + return), but neither path has a test. Add:
+`onProductSuccess` and `onPaymentSuccess` both guard against events arriving for unknown orders (log + return), but neither path has a test. Add:
 
-- `onInventoryEvent_onSuccess_unknownOrder_doesNothing`
+- `onProductEvent_onSuccess_unknownOrder_doesNothing`
 - `onPaymentEvent_onSuccess_unknownOrder_doesNothing`
 
 **Test idempotency once the guard is in place**
 
-Once a correlation-ID-based duplicate check exists, add a test that delivers the same `OrderEvent` twice and asserts only one order is created and only one inventory command is sent.
+Once a correlation-ID-based duplicate check exists, add a test that delivers the same `OrderEvent` twice and asserts only one order is created and only one product command is sent.
 
 ---
 

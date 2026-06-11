@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Usage: ./3-payment-event.sh <orderId> [--fail]
-#   orderId — from topic-payment-command after running 2-inventory-event.sh
-#   --fail  — send a failure response (triggers inventory RELEASE + FAILED order)
+#   orderId — from topic-payment-command after running 2-product-event.sh
+#   --fail  — send a failure response (triggers product RELEASE + FAILED order)
 
 BOOTSTRAP_SERVER="localhost:9092"
 TOPIC="topic-payment-event"

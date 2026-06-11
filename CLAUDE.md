@@ -30,25 +30,25 @@ orchestration/
 ## Compensation Flow (Payment Failure)
 
 ```
-order-service          orchestrator           inventory-service      payment-service
+order-service          orchestrator           product-service      payment-service
      |                      |                        |                      |
      |                      |<-- payment-event -----------------------------|
      |                      |                        |   (success: false)   |
-     |                      |-- inventory-command -->|                      |
+     |                      |-- product-command ---->|                      |
      |                      |   (operation: RELEASE) |                      |
      |<-- order-command ----|                        |                      |
      |   (status: FAILED)   |                        |                      |
 ```
 
-`ProductCommand.operation` is either `CHECKOUT` (with items) or `RELEASE` (orderId only — inventory-service resolves the reservation by orderId).
+`ProductCommand.operation` is either `CHECKOUT` (with items) or `RELEASE` (orderId only — product-service resolves the reservation by orderId).
 
 ## Architectural Decisions
 
 - **Hexagonal / ports-and-adapters**: the saga core is decoupled from Kafka and storage. Inbound port: `OrchestratorEventHandler`. Outbound ports: `OrchestratorCommandPublisher`, `SagaOrderStore`.
 - **`SagaOrderStore` is intentionally extracted**: the in-memory `ConcurrentHashMap` implementation is a placeholder. The migration path is Redis or MongoDB — implement the interface in `store/` and swap the Spring bean.
-- **Inventory service owns `totalPrice`**: the orchestrator does not calculate order totals. `ProductEvent` carries `totalPrice`, which is forwarded as-is to the payment command.
+- **Product service owns `totalPrice`**: the orchestrator does not calculate order totals. `ProductEvent` carries `totalPrice`, which is forwarded as-is to the payment command.
 - **Constructor injection only**: no `@Autowired` on fields or constructors (redundant since Spring 4.3+).
-- **Compensation scope**: only payment failure triggers inventory compensation. Inventory failure needs no compensation — no reservation was made. Never call `sendInventoryRelease` from the inventory failure path.
+- **Compensation scope**: only payment failure triggers product reservation compensation. Product event failure needs no compensation — no reservation was made. Never call `sendProductCommand` with RELEASE from the product event failure path.
 - **`KafkaHealthIndicator` uses a persistent `AdminClient`**: the client is created once at startup and reused across all health checks. On-demand creation was considered but rejected — Kafka logs the full config dump and metrics lifecycle on every create/close, which floods logs when Kubernetes probes every few seconds. The persistent client is kept quiet by `metadata.recovery.strategy=none`, which prevents rebootstrap from resetting the reconnect backoff counter (the default `rebootstrap` strategy resets the counter on every cycle, causing rapid reconnect storms when the broker is down). `KafkaHealthIndicator` is NOT auto-configured in Spring Boot 4.x — the custom implementation in `health/` is required. Health groups are defined manually in `application.yml` rather than via `management.health.probes.enabled=true` because the probes-enabled auto-created groups ignore custom `HealthIndicator` beans.
 
 ## Testing Approach
