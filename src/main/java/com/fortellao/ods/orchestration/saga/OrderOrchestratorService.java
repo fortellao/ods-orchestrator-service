@@ -31,55 +31,53 @@ public class OrderOrchestratorService implements OrchestratorEventHandler {
     @Override
     public void onOrderReceived(OrderEvent request) {
         String orderId = UUID.randomUUID().toString();
-        Order order = new Order(request);
-        order.setOrderId(orderId);
-        order.setStatus(OrderStatus.PENDING);
+        Order order = new Order(orderId, OrderStatus.PENDING, request);
         orderStore.save(order);
 
-        publisher.sendInventoryCommand(new ProductCommand(orderId, ProductOperation.CHECKOUT, request.getItems()));
+        publisher.sendInventoryCommand(new ProductCommand(orderId, ProductOperation.CHECKOUT, request.items()));
         log.info("Order {} - inventory checkout requested", orderId);
     }
 
     @Override
     public void onInventoryEvent(ProductEvent event) {
-        if (event.isSuccess()) {
+        if (event.success()) {
             onInventorySuccess(event);
         } else {
-            log.warn("Order {} - inventory checkout failed", event.getOrderId());
-            failOrder(event.getOrderId());
+            log.warn("Order {} - inventory checkout failed", event.orderId());
+            failOrder(event.orderId());
         }
     }
 
     @Override
     public void onPaymentEvent(PaymentEvent event) {
-        if (event.isSuccess()) {
+        if (event.success()) {
             onPaymentSuccess(event);
         } else {
-            log.warn("Order {} - payment validation failed", event.getOrderId());
-            compensateInventoryAndFail(event.getOrderId());
+            log.warn("Order {} - payment validation failed", event.orderId());
+            compensateInventoryAndFail(event.orderId());
         }
     }
 
     private void onInventorySuccess(ProductEvent event) {
-        Order order = orderStore.find(event.getOrderId());
+        Order order = orderStore.find(event.orderId());
         if (order == null) {
-            log.warn("Received inventory event for unknown order {}", event.getOrderId());
+            log.warn("Received inventory event for unknown order {}", event.orderId());
             return;
         }
 
-        publisher.sendPaymentCommand(new PaymentCommand(event.getOrderId(), order.getPaymentId(), event.getTotalPrice()));
-        log.info("Order {} - payment validation requested, totalPrice={}", event.getOrderId(), event.getTotalPrice());
+        publisher.sendPaymentCommand(new PaymentCommand(event.orderId(), order.paymentId(), event.totalPrice()));
+        log.info("Order {} - payment validation requested, totalPrice={}", event.orderId(), event.totalPrice());
     }
 
     private void onPaymentSuccess(PaymentEvent event) {
-        Order order = orderStore.remove(event.getOrderId());
+        Order order = orderStore.remove(event.orderId());
         if (order == null) {
-            log.warn("Received payment event for unknown order {}", event.getOrderId());
+            log.warn("Received payment event for unknown order {}", event.orderId());
             return;
         }
 
-        publisher.sendOrderCommand(new OrderCommand(event.getOrderId(), OrderStatus.CONFIRMED));
-        log.info("Order {} - confirmed", event.getOrderId());
+        publisher.sendOrderCommand(new OrderCommand(event.orderId(), OrderStatus.CONFIRMED));
+        log.info("Order {} - confirmed", event.orderId());
     }
 
     private void compensateInventoryAndFail(String orderId) {
