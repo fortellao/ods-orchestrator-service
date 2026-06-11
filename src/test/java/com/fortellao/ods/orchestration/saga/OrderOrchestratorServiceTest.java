@@ -57,89 +57,78 @@ class OrderOrchestratorServiceTest {
 
     @Test
     void onOrderReceived_savesPendingOrderAndRequestsInventoryCheckout() {
-        OrderEvent event = new OrderEvent();
-        event.setCustomerId("cust-8821");
-        event.setPaymentId("pay-4493");
-        event.setItems(List.of(
-                item("prod-001", 2), 
-                item("prod-047", 1)
-        ));
+        OrderEvent event = new OrderEvent(
+                "cust-8821",
+                "pay-4493",
+                List.of(item("prod-001", 2), item("prod-047", 1))
+        );
 
         service.onOrderReceived(event);
 
         verify(publisher).sendInventoryCommand(inventoryCommandCaptor.capture());
         ProductCommand cmd = inventoryCommandCaptor.getValue();
 
-        assertNotNull(cmd.getOrderId());
-        assertEquals(ProductOperation.CHECKOUT, cmd.getOperation());
-        assertEquals(event.getItems(), cmd.getItems());
+        assertNotNull(cmd.orderId());
+        assertEquals(ProductOperation.CHECKOUT, cmd.operation());
+        assertEquals(event.items(), cmd.items());
 
-        Order stored = orderStore.find(cmd.getOrderId());
+        Order stored = orderStore.find(cmd.orderId());
         assertNotNull(stored);
-        assertEquals(OrderStatus.PENDING, stored.getStatus());
-        assertEquals(event.getItems(), stored.getItems());
+        assertEquals(OrderStatus.PENDING, stored.status());
+        assertEquals(event.items(), stored.items());
     }
 
     @Test
     void onInventoryEvent_onSuccess_requestsPayment() {
         Order order = savedOrder();
 
-        ProductEvent event = new ProductEvent();
-        event.setOrderId(order.getOrderId());
-        event.setSuccess(true);
-        event.setTotalPrice(BigDecimal.valueOf(74.48));
+        ProductEvent event = new ProductEvent(order.orderId(), true, null, BigDecimal.valueOf(74.48));
 
         service.onInventoryEvent(event);
 
         verify(publisher).sendPaymentCommand(paymentCommandCaptor.capture());
         PaymentCommand cmd = paymentCommandCaptor.getValue();
 
-        assertEquals(order.getOrderId(), cmd.getOrderId());
-        assertEquals(order.getPaymentId(), cmd.getPaymentId());
-        assertEquals(event.getTotalPrice(), cmd.getTotalAmount());
-        assertNotNull(orderStore.find(order.getOrderId()));
+        assertEquals(order.orderId(), cmd.orderId());
+        assertEquals(order.paymentId(), cmd.paymentId());
+        assertEquals(event.totalPrice(), cmd.totalAmount());
+        assertNotNull(orderStore.find(order.orderId()));
     }
 
     @Test
     void onInventoryEvent_onFailure_sendsFailedStatusAndRemovesOrderFromStore() {
         Order order = savedOrder();
 
-        ProductEvent event = new ProductEvent();
-        event.setOrderId(order.getOrderId());
-        event.setSuccess(false);
+        ProductEvent event = new ProductEvent(order.orderId(), false, null, null);
 
         service.onInventoryEvent(event);
 
         verify(publisher).sendOrderCommand(orderCommandCaptor.capture());
-        assertEquals(order.getOrderId(), orderCommandCaptor.getValue().getOrderId());
-        assertEquals(OrderStatus.FAILED, orderCommandCaptor.getValue().getStatus());
+        assertEquals(order.orderId(), orderCommandCaptor.getValue().orderId());
+        assertEquals(OrderStatus.FAILED, orderCommandCaptor.getValue().status());
         verify(publisher, never()).sendInventoryCommand(any());
-        assertNull(orderStore.find(order.getOrderId()));
+        assertNull(orderStore.find(order.orderId()));
     }
 
     @Test
     void onPaymentEvent_onSuccess_confirmsOrderAndRemovesItFromStore() {
         Order order = savedOrder();
 
-        PaymentEvent event = new PaymentEvent();
-        event.setOrderId(order.getOrderId());
-        event.setSuccess(true);
+        PaymentEvent event = new PaymentEvent(order.orderId(), true);
 
         service.onPaymentEvent(event);
 
         verify(publisher).sendOrderCommand(orderCommandCaptor.capture());
-        assertEquals(order.getOrderId(), orderCommandCaptor.getValue().getOrderId());
-        assertEquals(OrderStatus.CONFIRMED, orderCommandCaptor.getValue().getStatus());
-        assertNull(orderStore.find(order.getOrderId()));
+        assertEquals(order.orderId(), orderCommandCaptor.getValue().orderId());
+        assertEquals(OrderStatus.CONFIRMED, orderCommandCaptor.getValue().status());
+        assertNull(orderStore.find(order.orderId()));
     }
 
     @Test
     void onPaymentEvent_onFailure_releasesInventoryThenSendsFailedStatus() {
         Order order = savedOrder();
 
-        PaymentEvent event = new PaymentEvent();
-        event.setOrderId(order.getOrderId());
-        event.setSuccess(false);
+        PaymentEvent event = new PaymentEvent(order.orderId(), false);
 
         service.onPaymentEvent(event);
 
@@ -147,28 +136,21 @@ class OrderOrchestratorServiceTest {
         inOrder.verify(publisher).sendInventoryCommand(inventoryCommandCaptor.capture());
         inOrder.verify(publisher).sendOrderCommand(orderCommandCaptor.capture());
 
-        assertEquals(ProductOperation.RELEASE, inventoryCommandCaptor.getValue().getOperation());
-        assertEquals(order.getOrderId(), inventoryCommandCaptor.getValue().getOrderId());
-        assertEquals(OrderStatus.FAILED, orderCommandCaptor.getValue().getStatus());
-        assertNull(orderStore.find(order.getOrderId()));
+        assertEquals(ProductOperation.RELEASE, inventoryCommandCaptor.getValue().operation());
+        assertEquals(order.orderId(), inventoryCommandCaptor.getValue().orderId());
+        assertEquals(OrderStatus.FAILED, orderCommandCaptor.getValue().status());
+        assertNull(orderStore.find(order.orderId()));
     }
 
     private Order savedOrder() {
-        OrderEvent request = new OrderEvent();
-        request.setPaymentId("pay-4493");
-        request.setItems(List.of());
+        OrderEvent request = new OrderEvent(null, "pay-4493", List.of());
 
-        Order order = new Order(request);
-        order.setOrderId("order-123");
-        order.setStatus(OrderStatus.PENDING);
+        Order order = new Order("order-123", OrderStatus.PENDING, request);
         orderStore.save(order);
         return order;
     }
 
     private static Item item(String productId, int quantity) {
-        Item item = new Item();
-        item.setProductId(productId);
-        item.setQuantity(quantity);
-        return item;
+        return new Item(productId, quantity);
     }
 }

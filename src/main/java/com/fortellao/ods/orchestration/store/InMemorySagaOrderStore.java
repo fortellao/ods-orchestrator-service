@@ -13,7 +13,7 @@ public class InMemorySagaOrderStore implements SagaOrderStore {
 
     @Override
     public void save(Order order) {
-        store.put(order.getOrderId(), order);
+        store.put(order.orderId(), order);
     }
 
     @Override
